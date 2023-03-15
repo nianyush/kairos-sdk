@@ -5,9 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kairos-io/kairos/pkg/machine"
-	"github.com/kairos-io/kairos/sdk/mounts"
-	"github.com/kairos-io/kairos/sdk/state"
+	"github.com/kairos-io/kairos-sdk/mounts"
+	"github.com/kairos-io/kairos-sdk/state"
 )
 
 // WriteCloudConfigData adds cloud config data in runtime.
@@ -41,7 +40,8 @@ func writeCloudConfig(oem state.PartitionState, cloudConfig, subpath, filename s
 		return err
 	}
 	defer func() {
-		machine.Umount(mountPath) //nolint:errcheck
+		oem.MountPoint = mountPath
+		mounts.Umount(oem) //nolint:errcheck
 	}()
 	_ = os.MkdirAll(filepath.Join(mountPath, subpath), 0650)
 	return os.WriteFile(filepath.Join(mountPath, subpath, fmt.Sprintf("%s.yaml", filename)), []byte(cloudConfig), 0650)

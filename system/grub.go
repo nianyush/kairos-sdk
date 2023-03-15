@@ -3,10 +3,9 @@ package system
 import (
 	"fmt"
 
-	"github.com/kairos-io/kairos/pkg/machine"
-	"github.com/kairos-io/kairos/pkg/utils"
-	"github.com/kairos-io/kairos/sdk/mounts"
-	"github.com/kairos-io/kairos/sdk/state"
+	"github.com/kairos-io/kairos-sdk/mounts"
+	"github.com/kairos-io/kairos-sdk/state"
+	"github.com/kairos-io/kairos-sdk/utils"
 )
 
 func SetGRUBOptions(opts map[string]string) Option {
@@ -19,6 +18,7 @@ func SetGRUBOptions(opts map[string]string) Option {
 }
 
 func setGRUBOptions(opts map[string]string) error {
+	mountPath := "/tmp/oem"
 	runtime, err := state.NewRuntime()
 	if err != nil {
 		return err
@@ -29,15 +29,16 @@ func setGRUBOptions(opts map[string]string) error {
 		oem = runtime.Persistent
 	}
 
-	if err := mounts.PrepareWrite(oem, "/tmp/oem"); err != nil {
+	if err := mounts.PrepareWrite(oem, mountPath); err != nil {
 		return err
 	}
 	defer func() {
-		machine.Umount("/tmp/oem") //nolint:errcheck
+		oem.MountPoint = mountPath
+		mounts.Umount(oem) //nolint:errcheck
 	}()
 
 	for k, v := range opts {
-		out, err := utils.SH(fmt.Sprintf(`%s /tmp/oem/grubenv set "%s=%s"`, machine.FindCommand("grub2-editenv", []string{"grub2-editenv", "grub-editenv"}), k, v))
+		out, err := utils.SH(fmt.Sprintf(`%s /tmp/oem/grubenv set "%s=%s"`, utils.FindCommand("grub2-editenv", []string{"grub2-editenv", "grub-editenv"}), k, v))
 		if err != nil {
 			fmt.Printf("could not set boot option: %s\n", out+err.Error())
 		}

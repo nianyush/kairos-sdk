@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/kairos-io/kairos/sdk/bundles"
+	. "github.com/kairos-io/kairos-sdk/bundles"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )

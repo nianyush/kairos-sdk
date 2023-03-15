@@ -10,8 +10,7 @@ import (
 	"github.com/itchyny/gojq"
 	"github.com/jaypipes/ghw"
 	"github.com/jaypipes/ghw/pkg/block"
-	"github.com/kairos-io/kairos/pkg/machine"
-	"github.com/kairos-io/kairos/pkg/utils"
+	"github.com/kairos-io/kairos-sdk/utils"
 	"github.com/zcalusic/sysinfo"
 	"gopkg.in/yaml.v3"
 )
@@ -169,7 +168,7 @@ func detectKairos(r *Runtime) {
 func NewRuntime() (Runtime, error) {
 	runtime := &Runtime{
 		BootState: detectBoot(),
-		UUID:      machine.UUID(),
+		UUID:      utils.UUID(),
 	}
 
 	detectSystem(runtime)
