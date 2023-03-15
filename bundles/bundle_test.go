@@ -15,7 +15,7 @@ var _ = Describe("Bundle", func() {
 			dir, err := os.MkdirTemp("", "test")
 			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll(dir)
-			os.MkdirAll(filepath.Join(dir, "var", "tmp", "luet"), os.ModePerm)
+			_ = os.MkdirAll(filepath.Join(dir, "var", "tmp", "luet"), os.ModePerm)
 			err = RunBundles([]BundleOption{WithDBPath(dir), WithRootFS(dir), WithTarget("package://utils/edgevpn")})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(filepath.Join(dir, "usr", "bin", "edgevpn")).To(BeARegularFile())
