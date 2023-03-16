@@ -2,10 +2,11 @@ package utils
 
 import (
 	"fmt"
-	"github.com/denisbrodbeck/machineid"
-	"github.com/joho/godotenv"
 	"os"
 	"os/exec"
+
+	"github.com/denisbrodbeck/machineid"
+	"github.com/joho/godotenv"
 )
 
 func SH(c string) (string, error) {
@@ -15,9 +16,9 @@ func SH(c string) (string, error) {
 	return string(o), err
 }
 
-func SHInDir(c, dir string) (string, error) {
+func SHInDir(c, dir string, envs ...string) (string, error) {
 	cmd := exec.Command("/bin/sh", "-c", c)
-	cmd.Env = os.Environ()
+	cmd.Env = append(os.Environ(), envs...)
 	cmd.Dir = dir
 	o, err := cmd.CombinedOutput()
 	return string(o), err
