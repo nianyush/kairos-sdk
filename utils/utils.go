@@ -161,3 +161,25 @@ func PrintBanner(d []byte) {
 	converter := convert.NewImageConverter()
 	fmt.Print(converter.Image2ASCIIString(img, &convertOptions))
 }
+
+func Reboot() {
+	pterm.Info.Println("Rebooting node")
+	SH("reboot") //nolint:errcheck
+}
+
+func PowerOFF() {
+	pterm.Info.Println("Shutdown node")
+	if IsOpenRCBased() {
+		SH("poweroff") //nolint:errcheck
+	} else {
+		SH("shutdown") //nolint:errcheck
+	}
+}
+
+func Version() string {
+	release, _ := godotenv.Read("/etc/os-release")
+	v := release["VERSION"]
+	v = strings.ReplaceAll(v, "+k3s1-Kairos", "-")
+	v = strings.ReplaceAll(v, "+k3s-Kairos", "-")
+	return strings.ReplaceAll(v, "Kairos", "")
+}
