@@ -3,7 +3,9 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"image"
 	"os"
 	"os/exec"
@@ -182,4 +184,17 @@ func Version() string {
 	v = strings.ReplaceAll(v, "+k3s1-Kairos", "-")
 	v = strings.ReplaceAll(v, "+k3s-Kairos", "-")
 	return strings.ReplaceAll(v, "Kairos", "")
+}
+
+func ListToOutput(rels []string, output string) []string {
+	switch strings.ToLower(output) {
+	case "yaml":
+		d, _ := yaml.Marshal(rels)
+		return []string{string(d)}
+	case "json":
+		d, _ := json.Marshal(rels)
+		return []string{string(d)}
+	default:
+		return rels
+	}
 }
