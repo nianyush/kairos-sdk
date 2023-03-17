@@ -125,3 +125,11 @@ func OnSignal(fn func(), sig ...os.Signal) {
 		fn()
 	}()
 }
+
+func Shell() *exec.Cmd {
+	cmd := exec.Command("/bin/sh")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd
+}
