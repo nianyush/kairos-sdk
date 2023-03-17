@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/denisbrodbeck/machineid"
 	"github.com/joho/godotenv"
@@ -62,4 +64,45 @@ func FindCommand(def string, options []string) string {
 
 	// Otherwise return default
 	return def
+}
+
+func K3sBin() string {
+	for _, p := range []string{"/usr/bin/k3s", "/usr/local/bin/k3s"} {
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+
+	return ""
+}
+
+func WriteEnv(envFile string, config map[string]string) error {
+	content, _ := os.ReadFile(envFile)
+	env, _ := godotenv.Unmarshal(string(content))
+
+	for key, val := range config {
+		env[key] = val
+	}
+
+	return godotenv.Write(env, envFile)
+}
+
+func Flavor() string {
+	release, _ := godotenv.Read("/etc/os-release")
+	v := release["NAME"]
+	return strings.ReplaceAll(v, "kairos-", "")
+}
+
+func IsOpenRCBased() bool {
+	f := Flavor()
+	return strings.Contains(f, "alpine")
+}
+
+func ShellSTDIN(s, c string) (string, error) {
+	cmd := exec.Command("/bin/sh", "-c", c)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = bytes.NewBuffer([]byte(s))
+	o, err := cmd.CombinedOutput()
+	return string(o), err
 }

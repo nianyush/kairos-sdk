@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/kairos-io/kairos/pkg/utils"
+	"github.com/kairos-io/kairos-sdk/utils"
 )
 
 func Umount(path string) error {
@@ -33,7 +33,7 @@ func Mount(label, mountpoint string) error {
 
 	part = strings.TrimSuffix(part, "\n")
 
-	if !Exists(mountpoint) {
+	if !utils.Exists(mountpoint) {
 		err := os.MkdirAll(mountpoint, 0755)
 		if err != nil {
 			return err

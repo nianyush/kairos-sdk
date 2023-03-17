@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/denisbrodbeck/machineid"
-	"github.com/kairos-io/kairos/pkg/machine/openrc"
-	"github.com/kairos-io/kairos/pkg/machine/systemd"
+	"github.com/kairos-io/kairos-sdk/machine/openrc"
+	"github.com/kairos-io/kairos-sdk/machine/systemd"
 
-	"github.com/kairos-io/kairos/pkg/utils"
+	"github.com/kairos-io/kairos-sdk/utils"
 )
 
 type Service interface {
