@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
 
 	"github.com/denisbrodbeck/machineid"
@@ -114,4 +115,13 @@ func SetEnv(env []string) {
 			os.Setenv(pair[0], pair[1])
 		}
 	}
+}
+
+func OnSignal(fn func(), sig ...os.Signal) {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, sig...)
+	go func() {
+		<-sigs
+		fn()
+	}()
 }
