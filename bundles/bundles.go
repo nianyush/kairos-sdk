@@ -177,7 +177,10 @@ func (l *ContainerRunner) Install(config *BundleConfig) error {
 	}
 
 	// We want to expect tempDir as context
-	out, err = utils.SHInDir(fmt.Sprintf("CONTAINERDIR=%s %s/run.sh", tempDir, tempDir), tempDir)
+	out, err = utils.SHInDir(
+		filepath.Join(tempDir, "run.sh"),
+		tempDir,
+		fmt.Sprintf("CONTAINERDIR=%s", tempDir), fmt.Sprintf("BUNDLE_TARGET=%s", target))
 	if err != nil {
 		return fmt.Errorf("could not execute container: %w - %s", err, out)
 	}
