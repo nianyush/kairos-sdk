@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"image"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -197,4 +198,32 @@ func ListToOutput(rels []string, output string) []string {
 	default:
 		return rels
 	}
+}
+
+func GetInterfaceIP(in string) string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		fmt.Println("failed getting system interfaces")
+		return ""
+	}
+	for _, i := range ifaces {
+		if i.Name == in {
+			addrs, _ := i.Addrs()
+			// handle err
+			for _, addr := range addrs {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+				if ip != nil {
+					return ip.String()
+
+				}
+			}
+		}
+	}
+	return ""
 }
