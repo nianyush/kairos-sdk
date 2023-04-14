@@ -55,9 +55,14 @@ func OSRelease(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	v, exists := release[key]
+	kairosKey := "KAIROS_" + key
+	v, exists := release[kairosKey]
 	if !exists {
-		return "", fmt.Errorf("key not found")
+		// We try with the old naming without the prefix in case the key wasn't found
+		v, exists = release[key]
+		if !exists {
+			return "", fmt.Errorf("key not found")
+		}
 	}
 	return v, nil
 }
@@ -96,14 +101,26 @@ func WriteEnv(envFile string, config map[string]string) error {
 }
 
 func Flavor() string {
-	release, _ := godotenv.Read("/etc/os-release")
-	v := release["NAME"]
+	v, err := OSRelease("FLAVOR")
+	if err != nil {
+		return ""
+	}
+
+	return v
+}
+
+func Name() string {
+	v, err := OSRelease("NAME")
+	if err != nil {
+		return ""
+	}
+
 	return strings.ReplaceAll(v, "kairos-", "")
 }
 
 func IsOpenRCBased() bool {
-	f := Flavor()
-	return strings.Contains(f, "alpine")
+	n := Name()
+	return strings.Contains(n, "alpine")
 }
 
 func ShellSTDIN(s, c string) (string, error) {
@@ -180,8 +197,10 @@ func PowerOFF() {
 }
 
 func Version() string {
-	release, _ := godotenv.Read("/etc/os-release")
-	v := release["VERSION"]
+	v, err := OSRelease("VERSION")
+	if err != nil {
+		return ""
+	}
 	v = strings.ReplaceAll(v, "+k3s1-Kairos", "-")
 	v = strings.ReplaceAll(v, "+k3s-Kairos", "-")
 	return strings.ReplaceAll(v, "Kairos", "")
