@@ -18,9 +18,7 @@ test:
     COPY go.mod go.sum ./
     RUN go mod download
     COPY . .
-    RUN go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
-    ENV ACK_GINKGO_DEPRECATIONS=2.5.1
-    RUN ginkgo run --fail-fast --slow-spec-threshold 30s --covermode=atomic --coverprofile=coverage.out -p -r ./...
+    RUN go run github.com/onsi/ginkgo/v2/ginkgo run --fail-fast --slow-spec-threshold 30s --covermode=atomic --coverprofile=coverage.out -p -r ./...
     SAVE ARTIFACT coverage.out AS LOCAL coverage.out
 
 lint:

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	filePrefix = "file://"
+	filePrefix = "file://" //nolint:unused
 )
 
 type BundleConfig struct {
@@ -138,9 +138,9 @@ func NewBundleInstaller(bc BundleConfig) (BundleInstaller, error) {
 	}
 	switch strings.ToLower(dat[0]) {
 	case "container":
-		return &ContainerInstaller{}, nil
+		return &OCIImageExtractor{}, nil
 	case "run":
-		return &ContainerRunner{}, nil
+		return &OCIImageRunner{}, nil
 	case "package":
 		return &LuetInstaller{}, nil
 
@@ -149,66 +149,38 @@ func NewBundleInstaller(bc BundleConfig) (BundleInstaller, error) {
 	return &LuetInstaller{}, nil
 }
 
-// BundleInstall installs a bundle from a luet repo or a container image.
-type ContainerRunner struct{}
+// OCIImageExtractor will extract an OCI image
+type OCIImageExtractor struct{}
 
-func (l *ContainerRunner) Install(config *BundleConfig) error {
+func (e OCIImageExtractor) Install(config *BundleConfig) error {
+	return utils.ExtractOCIImage(config.Target, config.RootPath, config.LocalFile)
+}
 
+// OCIImageRunner will extract an OCI image and then run its run.sh
+type OCIImageRunner struct{}
+
+func (e OCIImageRunner) Install(config *BundleConfig) error {
 	tempDir, err := os.MkdirTemp("", "containerrunner")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tempDir)
 
-	target := config.Target
-	if config.LocalFile {
-		target = strings.Join([]string{filePrefix, target}, "")
-	}
-
-	out, err := utils.SH(
-		fmt.Sprintf(
-			`luet util unpack %s %s`,
-			target,
-			tempDir,
-		),
-	)
+	err = utils.ExtractOCIImage(config.Target, tempDir, config.LocalFile)
 	if err != nil {
-		return fmt.Errorf("could not unpack container: %w - %s", err, out)
+		return err
 	}
 
 	// We want to expect tempDir as context
-	out, err = utils.SHInDir(
+	out, err := utils.SHInDir(
 		filepath.Join(tempDir, "run.sh"),
 		tempDir,
-		fmt.Sprintf("CONTAINERDIR=%s", tempDir), fmt.Sprintf("BUNDLE_TARGET=%s", target))
+		fmt.Sprintf("CONTAINERDIR=%s", tempDir), fmt.Sprintf("BUNDLE_TARGET=%s", config.Target))
 	if err != nil {
 		return fmt.Errorf("could not execute container: %w - %s", err, out)
 	}
-	return nil
-}
 
-type ContainerInstaller struct{}
-
-func (l *ContainerInstaller) Install(config *BundleConfig) error {
-
-	target := config.Target
-	if config.LocalFile {
-		target = strings.Join([]string{filePrefix, target}, "")
-	}
-
-	//mkdir -p test/etc/luet/repos.conf.d
-	out, err := utils.SH(
-		fmt.Sprintf(
-			`luet util unpack %s %s`,
-			target,
-			config.RootPath,
-		),
-	)
-	if err != nil {
-		return fmt.Errorf("could not unpack bundle: %w - %s", err, out)
-	}
-
-	return nil
+	return err
 }
 
 type LuetInstaller struct{}
