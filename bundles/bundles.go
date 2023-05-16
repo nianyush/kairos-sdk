@@ -153,7 +153,7 @@ func NewBundleInstaller(bc BundleConfig) (BundleInstaller, error) {
 type OCIImageExtractor struct{}
 
 func (e OCIImageExtractor) Install(config *BundleConfig) error {
-	return utils.ExtractOCIImage(config.Target, config.RootPath, config.LocalFile)
+	return utils.ExtractOCIImage(config.Target, config.RootPath, utils.GetCurrentPlatform(), config.LocalFile)
 }
 
 // OCIImageRunner will extract an OCI image and then run its run.sh
@@ -166,7 +166,7 @@ func (e OCIImageRunner) Install(config *BundleConfig) error {
 	}
 	defer os.RemoveAll(tempDir)
 
-	err = utils.ExtractOCIImage(config.Target, tempDir, config.LocalFile)
+	err = utils.ExtractOCIImage(config.Target, tempDir, utils.GetCurrentPlatform(), config.LocalFile)
 	if err != nil {
 		return err
 	}
