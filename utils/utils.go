@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"runtime"
 	"strings"
 
 	"github.com/denisbrodbeck/machineid"
@@ -245,4 +246,9 @@ func GetInterfaceIP(in string) string {
 		}
 	}
 	return ""
+}
+
+// GetCurrentPlatform returns the current platform in docker style `linux/amd64` for use with image utils
+func GetCurrentPlatform() string {
+	return fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 }

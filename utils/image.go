@@ -15,10 +15,20 @@ import (
 )
 
 // ExtractOCIImage will extract a given targetImage into a given targetDestination and pull from the local repo if set.
-func ExtractOCIImage(targetImage, targetDestination string, isLocal bool) error {
-	platform, err := v1.ParsePlatform(fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
-	if err != nil {
-		return err
+func ExtractOCIImage(targetImage, targetDestination, targetPlatform string, isLocal bool) error {
+	var platform *v1.Platform
+	var err error
+
+	if targetPlatform != "" {
+		platform, err = v1.ParsePlatform(targetPlatform)
+		if err != nil {
+			return err
+		}
+	} else {
+		platform, err = v1.ParsePlatform(fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
+		if err != nil {
+			return err
+		}
 	}
 
 	ref, err := name.ParseReference(targetImage)
