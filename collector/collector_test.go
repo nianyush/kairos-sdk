@@ -514,6 +514,7 @@ options:
 config_url: http://127.0.0.1:%d/remote_config_5.yaml
 local_key_2: local_value_2
 `, port)), os.ModePerm)
+				Expect(err).ToNot(HaveOccurred())
 				err = os.WriteFile(path.Join(tmpDir2, "local_config_3.yaml"), []byte(`#cloud-config
 local_key_3: local_value_3
 `), os.ModePerm)
@@ -719,8 +720,10 @@ some:
 			Expect(err).ToNot(HaveOccurred())
 			Expect(v).To(Equal("other:\n    key: 3\n"))
 			v, err = c.Query("some.other")
+			Expect(err).ToNot(HaveOccurred())
 			Expect(v).To(Equal("key: 3\n"))
 			v, err = c.Query("some.other.key")
+			Expect(err).ToNot(HaveOccurred())
 			Expect(v).To(Equal("3\n"))
 			Expect(c.Query("options")).To(Equal("foo: bar\n"))
 		})
