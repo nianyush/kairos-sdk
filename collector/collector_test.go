@@ -367,7 +367,7 @@ install:
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				c, err := Scan(o, FilterKeys)
+				c, err := Scan(o, FilterKeysTestMerge)
 				Expect(err).ToNot(HaveOccurred())
 
 				fmt.Println(c.String())
@@ -444,7 +444,7 @@ stages:
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				c, err := Scan(o, FilterKeys)
+				c, err := Scan(o, FilterKeysTestMerge)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(c.String()).To(Equal(`#cloud-config
@@ -556,7 +556,7 @@ options:
 				)
 				Expect(err).ToNot(HaveOccurred())
 
-				c, err := Scan(o, FilterKeys)
+				c, err := Scan(o, FilterKeysTestMerge)
 				Expect(err).ToNot(HaveOccurred())
 
 				configURL, ok := (*c)["config_url"].(string)
@@ -642,7 +642,7 @@ remote_key_2: remote_value_2`), os.ModePerm)
 				err := o.Apply(Directories(tmpDir), NoLogs)
 				Expect(err).ToNot(HaveOccurred())
 
-				c, err := Scan(o, FilterKeys)
+				c, err := Scan(o, FilterKeysTest)
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect((*c)["local_key_2"]).To(BeNil())
@@ -710,7 +710,7 @@ some:
 			)
 			Expect(err).ToNot(HaveOccurred())
 
-			c, err := Scan(o, FilterKeys)
+			c, err := Scan(o, FilterKeysTest)
 			Expect(err).ToNot(HaveOccurred())
 
 			v, err := c.Query("local_key_1")
@@ -753,4 +753,43 @@ remote_key_2: remote_value_2
 	Expect(err).ToNot(HaveOccurred())
 
 	return cmdLinePath
+}
+
+// Generic config type with no fields, accepts everything for filtering
+type TestCfgGeneric map[string]interface{}
+
+func FilterKeysTest(d []byte) ([]byte, error) {
+	cmdLineFilter := TestCfgGeneric{}
+	err := yaml.Unmarshal(d, &cmdLineFilter)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	out, err := yaml.Marshal(cmdLineFilter)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return out, nil
+}
+
+// Focused config with explicit fields, anything not here will be dropped by filterkeys
+type TestCfgFields struct {
+	ConfigURL string            `yaml:"config_url,omitempty"`
+	Options   map[string]string `yaml:"options,omitempty"`
+}
+
+func FilterKeysTestMerge(d []byte) ([]byte, error) {
+	cmdLineFilter := TestCfgFields{}
+	err := yaml.Unmarshal(d, &cmdLineFilter)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	out, err := yaml.Marshal(cmdLineFilter)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return out, nil
 }

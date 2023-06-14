@@ -481,19 +481,3 @@ func (c Config) Query(s string) (res string, err error) {
 	}
 	return
 }
-
-// FilterKeys is used to pass to any other pkg which might want to see which part of the config matches the Kairos config.
-func FilterKeys(d []byte) ([]byte, error) {
-	cmdLineFilter := Config{}
-	err := yaml.Unmarshal(d, &cmdLineFilter)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	out, err := yaml.Marshal(cmdLineFilter)
-	if err != nil {
-		return []byte{}, err
-	}
-
-	return out, nil
-}
