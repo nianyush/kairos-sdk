@@ -88,10 +88,8 @@ func getimage(ref name.Reference, platform v1.Platform) (v1.Image, error) {
 	)
 
 	image, err = daemon.Image(ref)
-	fmt.Println("lo")
 
 	if err != nil {
-		fmt.Println("re")
 		image, err = remote.Image(ref,
 			remote.WithTransport(tr),
 			remote.WithPlatform(platform),
