@@ -15,6 +15,7 @@ type profileDataStruct struct {
 
 type profileFileStruct struct {
 	Common  []string            `yaml:"common"`
+	Images  []string            `yaml:"images"`
 	Flavors map[string][]string `yaml:"flavors"`
 }
 
@@ -44,13 +45,11 @@ func BuildFlavor(flavor string, profileFile string, directory string) error {
 		allPackages = append(allPackages, packages...)
 	}
 
-	common, err := readCommonPackages(profileFile)
-	if err != nil {
-		return fmt.Errorf("error while reading common packs: %w", err)
+	if err := populateProfile(profileFile, directory, append(allPackages, prof.Common...)); err != nil {
+		return fmt.Errorf("error while populating profile: %w", err)
 	}
-	allPackages = append(allPackages, common...)
 
-	return populateProfile(profileFile, directory, allPackages)
+	return applyImages(directory, prof.Images)
 }
 
 func readProfilePackages(profile string, profileFile string) ([]string, error) {
@@ -84,20 +83,19 @@ func readProfilePackages(profile string, profileFile string) ([]string, error) {
 	return res, fmt.Errorf("profile '%s' not found", profile)
 }
 
-func readCommonPackages(profileFile string) ([]string, error) {
-	res := []string{}
+func readProfile(profileFile string) (*profileFileStruct, error) {
 	dat, err := os.ReadFile(profileFile)
 	if err != nil {
-		return res, fmt.Errorf("error while reading profile: %w", err)
+		return nil, fmt.Errorf("error while reading profile: %w", err)
 	}
 
 	prof := &profileFileStruct{}
 
 	if err := yaml.Unmarshal(dat, &prof); err != nil {
-		return res, fmt.Errorf("error while unmarshalling profile: %w", err)
+		return nil, fmt.Errorf("error while unmarshalling profile: %w", err)
 	}
 
-	return prof.Common, nil
+	return prof, nil
 }
 
 func populateProfile(config string, directory string, packages []string) error {
@@ -112,16 +110,33 @@ func populateProfile(config string, directory string, packages []string) error {
 	return nil
 }
 
+func applyImages(directory string, images []string) error {
+	for _, img := range images {
+		cmd := fmt.Sprintf("luet util unpack %s %s", img, directory)
+		fmt.Println("running:", cmd)
+		out, err := utils.SH(cmd)
+		if err != nil {
+			return fmt.Errorf("error while running luet: %w (%s)", err, out)
+		}
+	}
+
+	return nil
+}
+
 func Build(profile string, profileFile string, directory string) error {
 	packages, err := readProfilePackages(profile, profileFile)
 	if err != nil {
 		return fmt.Errorf("error while reading profile: %w", err)
 	}
 
-	common, err := readCommonPackages(profileFile)
+	prof, err := readProfile(profileFile)
 	if err != nil {
 		return fmt.Errorf("error while reading profile: %w", err)
 	}
 
-	return populateProfile(profileFile, directory, append(packages, common...))
+	if err := populateProfile(profileFile, directory, append(packages, prof.Common...)); err != nil {
+		return fmt.Errorf("error while populating profile: %w", err)
+	}
+
+	return applyImages(directory, prof.Images)
 }
