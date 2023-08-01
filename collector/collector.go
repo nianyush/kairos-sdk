@@ -108,50 +108,26 @@ func (c *Config) MergeConfig(newConfig *Config) error {
 	return c.applyMap(cMap)
 }
 
-func deepMergeSlices(sliceA, sliceB []interface{}) ([]interface{}, error) {
+func mergeSlices(sliceA, sliceB []interface{}) ([]interface{}, error) {
 	// We use the first item in the slice to determine if there are maps present.
-	// Do we need to do the same for other types?
 	firstItem := sliceA[0]
+	// If the first item is a map, we concatenate both slices
 	if reflect.ValueOf(firstItem).Kind() == reflect.Map {
-		temp := make(map[string]interface{})
+		union := append(sliceA, sliceB...)
 
-		// first we put in temp all the keys present in a, and assign them their existing values
-		for _, item := range sliceA {
-			for k, v := range item.(map[string]interface{}) {
-				temp[k] = v
-			}
-		}
-
-		// then we go through b to merge each of its keys
-		for _, item := range sliceB {
-			for k, v := range item.(map[string]interface{}) {
-				current, ok := temp[k]
-				if ok {
-					// if the key exists, we deep merge it
-					dm, err := DeepMerge(current, v)
-					if err != nil {
-						return []interface{}{}, fmt.Errorf("cannot merge %s with %s", current, v)
-					}
-					temp[k] = dm
-				} else {
-					// otherwise we just set it
-					temp[k] = v
-				}
-			}
-		}
-
-		return []interface{}{temp}, nil
+		return union, nil
 	}
 
-	// This implementation is needed because Go 1.19 does not implement compare for {}interface. Once
-	// FIPS can be upgraded to 1.20, we should be able to use this other code:
-	// // for simple slices
+	// For any other type, we check if the every item in sliceB is already present in sliceA and if not, we add it.
+	// Implementation for 1.20:
 	// for _, v := range sliceB {
 	// 	i := slices.Index(sliceA, v)
 	// 	if i < 0 {
 	// 		sliceA = append(sliceA, v)
 	// 	}
 	// }
+	// This implementation is needed because Go 1.19 does not implement compare for {}interface. Once
+	// FIPS can be upgraded to 1.20, we should be able to use the code above instead.
 	for _, vB := range sliceB {
 		found := false
 		for _, vA := range sliceA {
@@ -204,7 +180,7 @@ func DeepMerge(a, b interface{}) (interface{}, error) {
 	}
 
 	if typeA.Kind() == reflect.Slice {
-		return deepMergeSlices(a.([]interface{}), b.([]interface{}))
+		return mergeSlices(a.([]interface{}), b.([]interface{}))
 	}
 
 	if typeA.Kind() == reflect.Map {

@@ -242,15 +242,24 @@ info:
 			It("merges", func() {
 				c, err := DeepMerge(a, b)
 				Expect(err).ToNot(HaveOccurred())
-				users := c.([]interface{})[0].(map[string]interface{})["users"]
-				Expect(users).To(HaveLen(1))
-				Expect(users).To(Equal([]interface{}{
+				Expect(c).To(HaveLen(2))
+				Expect(c).To(Equal([]interface{}{
 					map[string]interface{}{
-						"kairos": map[string]interface{}{
-							"passwd": "kairos",
+						"users": []interface{}{
+							map[string]interface{}{
+								"kairos": map[string]interface{}{
+									"passwd": "kairos",
+								},
+							},
 						},
-						"foo": map[string]interface{}{
-							"passwd": "bar",
+					},
+					map[string]interface{}{
+						"users": []interface{}{
+							map[string]interface{}{
+								"foo": map[string]interface{}{
+									"passwd": "bar",
+								},
+							},
 						},
 					},
 				}))
@@ -300,6 +309,158 @@ info:
 	})
 
 	Describe("Scan", func() {
+		Context("When users are created for the same stage on different files (issue kairos-io/kairos#1341)", func() {
+			var cmdLinePath, tmpDir1 string
+			var err error
+
+			BeforeEach(func() {
+				tmpDir1, err = os.MkdirTemp("", "config1")
+				Expect(err).ToNot(HaveOccurred())
+				err := os.WriteFile(path.Join(tmpDir1, "local_config_1.yaml"), []byte(`#cloud-config
+install:
+  auto: true
+  reboot: false
+  poweroff: false
+  grub_options:
+     extra_cmdline: "console=tty0"
+options:
+  device: /dev/sda
+stages:
+  initramfs:
+    - users:
+        kairos:
+          groups:
+            - sudo
+          passwd: kairos
+`), os.ModePerm)
+				Expect(err).ToNot(HaveOccurred())
+				err = os.WriteFile(path.Join(tmpDir1, "local_config_2.yaml"), []byte(`#cloud-config
+stages:
+  initramfs:
+    - users:
+        foo:
+          groups:
+            - sudo
+          passwd: bar
+`), os.ModePerm)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				err = os.RemoveAll(tmpDir1)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("keeps the two users", func() {
+				o := &Options{}
+				err := o.Apply(
+					MergeBootLine,
+					WithBootCMDLineFile(cmdLinePath),
+					Directories(tmpDir1),
+				)
+				Expect(err).ToNot(HaveOccurred())
+
+				c, err := Scan(o, FilterKeysTestMerge)
+				Expect(err).ToNot(HaveOccurred())
+
+				fmt.Println(c.String())
+				Expect(c.String()).To(Equal(`#cloud-config
+
+install:
+    auto: true
+    grub_options:
+        extra_cmdline: console=tty0
+    poweroff: false
+    reboot: false
+options:
+    device: /dev/sda
+stages:
+    initramfs:
+        - users:
+            kairos:
+                groups:
+                    - sudo
+                passwd: kairos
+        - users:
+            foo:
+                groups:
+                    - sudo
+                passwd: bar
+`))
+			})
+		})
+
+		Context("When a YIP if expression is contained", func() {
+			var cmdLinePath, tmpDir1 string
+			var err error
+
+			BeforeEach(func() {
+				tmpDir1, err = os.MkdirTemp("", "config1")
+				Expect(err).ToNot(HaveOccurred())
+				err := os.WriteFile(path.Join(tmpDir1, "local_config_1.yaml"), []byte(`#cloud-config
+stages:
+  initramfs:
+  - users:
+      kairos:
+        passwd: kairos
+  - name: set_inotify_max_values
+    if: '[ ! -f /oem/80_stylus.yaml ]'
+    sysctl:
+      fs.inotify.max_user_instances: "8192"
+`), os.ModePerm)
+				Expect(err).ToNot(HaveOccurred())
+				err = os.WriteFile(path.Join(tmpDir1, "local_config_2.yaml"), []byte(`#cloud-config
+stages:
+  initramfs:
+  - commands:
+    - ln -s /etc/kubernetes/admin.conf /run/kubeconfig
+    sysctl:
+      kernel.panic: "10"
+      kernel.panic_on_oops: "1"
+      vm.overcommit_memory: "1"
+`), os.ModePerm)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			AfterEach(func() {
+				err = os.RemoveAll(tmpDir1)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("it remains within its scope after merging", func() {
+				o := &Options{}
+				err := o.Apply(
+					MergeBootLine,
+					WithBootCMDLineFile(cmdLinePath),
+					Directories(tmpDir1),
+				)
+				Expect(err).ToNot(HaveOccurred())
+
+				c, err := Scan(o, FilterKeysTestMerge)
+				Expect(err).ToNot(HaveOccurred())
+
+				fmt.Println(c.String())
+				Expect(c.String()).To(Equal(`#cloud-config
+
+stages:
+    initramfs:
+        - users:
+            kairos:
+                passwd: kairos
+        - if: '[ ! -f /oem/80_stylus.yaml ]'
+          name: set_inotify_max_values
+          sysctl:
+            fs.inotify.max_user_instances: "8192"
+        - commands:
+            - ln -s /etc/kubernetes/admin.conf /run/kubeconfig
+          sysctl:
+            kernel.panic: "10"
+            kernel.panic_on_oops: "1"
+            vm.overcommit_memory: "1"
+`))
+			})
+		})
+
 		Context("duplicated configs", func() {
 			var cmdLinePath, tmpDir1 string
 			var err error
@@ -358,7 +519,7 @@ install:
 				Expect(err).ToNot(HaveOccurred())
 			})
 
-			It("should be the same as just one of them", func() {
+			It("remain duplicated, and are the responsibility of the user", func() {
 				o := &Options{}
 				err := o.Apply(
 					MergeBootLine,
@@ -379,6 +540,9 @@ install:
         - rootfs_path: /usr/local/lib/extensions/kubo
           targets:
             - container://ttl.sh/97d4530c-df80-4eb4-9ae7-39f8f90c26e5:8h
+        - rootfs_path: /usr/local/lib/extensions/kubo
+          targets:
+            - container://ttl.sh/97d4530c-df80-4eb4-9ae7-39f8f90c26e5:8h
     device: auto
     grub_options:
         extra_cmdline: foobarzz
@@ -390,9 +554,15 @@ stages:
           users:
             kairos:
                 passwd: kairos
+        - hostname: kairos-{{ trunc 4 .Random }}
+          name: Set user and password
+          users:
+            kairos:
+                passwd: kairos
 `))
 			})
 		})
+
 		Context("Deep merge maps within arrays", func() {
 			var cmdLinePath, tmpDir1 string
 			var err error
@@ -460,14 +630,15 @@ options:
 stages:
     initramfs:
         - users:
-            foo:
-                groups:
-                    - sudo
-                passwd: bar
             kairos:
                 groups:
                     - sudo
                 passwd: kairos
+        - users:
+            foo:
+                groups:
+                    - sudo
+                passwd: bar
 `))
 			})
 		})
