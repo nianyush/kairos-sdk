@@ -42,28 +42,10 @@ var defaultRetryPredicate = func(err error) bool {
 
 // ExtractOCIImage will extract a given targetImage into a given targetDestination
 func ExtractOCIImage(targetImage, targetDestination, targetPlatform string) error {
-	var platform *v1.Platform
 	var img v1.Image
 	var err error
 
-	if targetPlatform != "" {
-		platform, err = v1.ParsePlatform(targetPlatform)
-		if err != nil {
-			return err
-		}
-	} else {
-		platform, err = v1.ParsePlatform(fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
-		if err != nil {
-			return err
-		}
-	}
-
-	ref, err := name.ParseReference(targetImage)
-	if err != nil {
-		return err
-	}
-
-	img, err = getimage(ref, *platform)
+	img, err = getimage(targetImage, targetPlatform)
 	if err != nil {
 		return err
 	}
@@ -79,9 +61,28 @@ func ExtractOCIImage(targetImage, targetDestination, targetPlatform string) erro
 
 // image returns the proper image to pull with transport and auth
 // tries local daemon first and then fallbacks into remote
-func getimage(ref name.Reference, platform v1.Platform) (v1.Image, error) {
+func getimage(targetImage, targetPlatform string) (v1.Image, error) {
+	var platform *v1.Platform
 	var image v1.Image
 	var err error
+
+	if targetPlatform != "" {
+		platform, err = v1.ParsePlatform(targetPlatform)
+		if err != nil {
+			return image, err
+		}
+	} else {
+		platform, err = v1.ParsePlatform(fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH))
+		if err != nil {
+			return image, err
+		}
+	}
+
+	ref, err := name.ParseReference(targetImage)
+	if err != nil {
+		return image, err
+	}
+
 	tr := transport.NewRetry(http.DefaultTransport,
 		transport.WithRetryBackoff(defaultRetryBackoff),
 		transport.WithRetryPredicate(defaultRetryPredicate),
@@ -92,10 +93,28 @@ func getimage(ref name.Reference, platform v1.Platform) (v1.Image, error) {
 	if err != nil {
 		image, err = remote.Image(ref,
 			remote.WithTransport(tr),
-			remote.WithPlatform(platform),
+			remote.WithPlatform(*platform),
 			remote.WithAuthFromKeychain(authn.DefaultKeychain),
 		)
 	}
 
 	return image, err
+}
+
+func GetOCIImageSize(targetImage, targetPlatform string) (int64, error) {
+	var size int64
+	var img v1.Image
+	var err error
+
+	img, err = getimage(targetImage, targetPlatform)
+	if err != nil {
+		return size, err
+	}
+
+	size, err = img.Size()
+	if err != nil {
+		return size, err
+	}
+
+	return size, nil
 }
