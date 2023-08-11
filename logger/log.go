@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -64,9 +65,14 @@ func (k KairosLog) IsDebugLevel() bool {
 	return k.Logger.GetLevel() == zerolog.DebugLevel
 }
 
+// Fix to set a decent time format in the console output otherwise its a very simple output
+func TimeFormatConsole(w *zerolog.ConsoleWriter) {
+	w.TimeFormat = time.RFC3339
+}
+
 // NewKairosLog provides a normal console log
 func NewKairosLog(opts ...LogOption) (*KairosLog, error) {
-	k := &KairosLog{zerolog.New(zerolog.NewConsoleWriter())}
+	k := &KairosLog{zerolog.New(zerolog.NewConsoleWriter(TimeFormatConsole)).With().Timestamp().Logger()}
 	for _, o := range opts {
 		o(k)
 	}
@@ -80,7 +86,7 @@ func NewKairosLogToFile(logfile string, opts ...LogOption) (*KairosLog, error) {
 	if err != nil {
 		return nil, err
 	}
-	k := &KairosLog{zerolog.New(f)}
+	k := &KairosLog{zerolog.New(f).With().Timestamp().Logger()}
 	for _, o := range opts {
 		o(k)
 	}
@@ -89,26 +95,37 @@ func NewKairosLogToFile(logfile string, opts ...LogOption) (*KairosLog, error) {
 
 // NewKairosMultiLog provides a logger that logs to both console and a given file
 func NewKairosMultiLog(logfile string, opts ...LogOption) (*KairosLog, error) {
-	f, err := os.Open(logfile)
+	f, err := os.OpenFile(logfile, os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
-	multiWriter := zerolog.MultiLevelWriter(zerolog.New(zerolog.NewConsoleWriter()), zerolog.New(f))
-	k := &KairosLog{zerolog.New(multiWriter).With().Logger()}
+	multiWriter := zerolog.MultiLevelWriter(zerolog.NewConsoleWriter(TimeFormatConsole), zerolog.NewConsoleWriter(TimeFormatConsole, func(w *zerolog.ConsoleWriter) {
+		w.Out = f
+	}))
+	k := &KairosLog{zerolog.New(multiWriter).With().Timestamp().Logger()}
+	for _, o := range opts {
+		o(k)
+	}
 	return k, nil
 }
 
 // NewKairosNullLog provides a logger that discards all output
 func NewKairosNullLog(opts ...LogOption) (*KairosLog, error) {
-	k := &KairosLog{zerolog.New(nil).Level(zerolog.Level(Disabled))}
+	k := &KairosLog{zerolog.New(nil).With().Timestamp().Logger().Level(zerolog.Level(Disabled))}
+	for _, o := range opts {
+		o(k)
+	}
 	return k, nil
 }
 
 // NewKairosBufferLog will return a logger that stores all logs in a buffer, used mainly for testing
-func NewKairosBufferLog(b *bytes.Buffer) (*KairosLog, error) {
-	k := &KairosLog{zerolog.New(zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+func NewKairosBufferLog(b *bytes.Buffer, opts ...LogOption) (*KairosLog, error) {
+	k := &KairosLog{zerolog.New(zerolog.NewConsoleWriter(TimeFormatConsole, func(w *zerolog.ConsoleWriter) {
 		w.Out = b
-	}))}
+	})).With().Timestamp().Logger()}
+	for _, o := range opts {
+		o(k)
+	}
 	return k, nil
 }
 
@@ -118,6 +135,6 @@ func NewKairosBufferLog(b *bytes.Buffer) (*KairosLog, error) {
 // them based on the level and such. Otherwise it will use the Writer method directly and miss a lot fo stuff
 func NewKairosMultiCustomLogTargets(writers ...io.Writer) (*KairosLog, error) {
 	multiWriter := zerolog.MultiLevelWriter(writers...)
-	k := &KairosLog{zerolog.New(multiWriter)}
+	k := &KairosLog{zerolog.New(multiWriter).With().Timestamp().Logger()}
 	return k, nil
 }
