@@ -95,7 +95,7 @@ func NewKairosLogToFile(logfile string, opts ...LogOption) (*KairosLog, error) {
 
 // NewKairosMultiLog provides a logger that logs to both console and a given file
 func NewKairosMultiLog(logfile string, opts ...LogOption) (*KairosLog, error) {
-	f, err := os.OpenFile(logfile, os.O_WRONLY|os.O_APPEND, 0666)
+	f, err := os.OpenFile(logfile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, err
 	}
