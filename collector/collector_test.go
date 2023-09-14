@@ -833,6 +833,60 @@ remote_key_2: remote_value_2`), os.ModePerm)
 				Expect(v).To(Equal("remote_value_1"))
 			})
 		})
+		Context("when files have comments before the headers or jinja declarations", func() {
+			var tmpDir string
+			var err error
+
+			BeforeEach(func() {
+				tmpDir, err = os.MkdirTemp("", "config")
+				Expect(err).ToNot(HaveOccurred())
+
+				// Local configs
+				err = os.WriteFile(path.Join(tmpDir, "local_config.yaml"), []byte(`## template: jinja
+#cloud-config
+local_key_1: local_value_1
+`), os.ModePerm)
+				Expect(err).ToNot(HaveOccurred())
+
+				// comments before the header
+				err = os.WriteFile(path.Join(tmpDir, "local_config_2.yaml"),
+					[]byte(`
+# this is a comment
+## then another comment
+#and the last one
+
+#cloud-config
+local_key_2: local_value_2
+`), os.ModePerm)
+				Expect(err).ToNot(HaveOccurred())
+
+			})
+
+			AfterEach(func() {
+				err = os.RemoveAll(tmpDir)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("reads them", func() {
+				o := &Options{}
+				err := o.Apply(Directories(tmpDir), NoLogs)
+				Expect(err).ToNot(HaveOccurred())
+
+				c, err := Scan(o, FilterKeysTest)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect((*c)["local_key_1"]).ToNot(BeNil())
+				Expect((*c)["local_key_2"]).ToNot(BeNil())
+
+				v, ok := (*c)["local_key_1"].(string)
+				Expect(ok).To(BeTrue())
+				Expect(v).To(Equal("local_value_1"))
+
+				v, ok = (*c)["local_key_2"].(string)
+				Expect(ok).To(BeTrue())
+				Expect(v).To(Equal("local_value_2"))
+			})
+		})
 	})
 
 	Describe("String", func() {
