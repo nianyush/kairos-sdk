@@ -13,29 +13,31 @@ const (
 	// KAIROS_VERSION was already used in os-release and we avoided breaking it
 	// for consumers by using a new variable KAIROS_RELEASE instead. But it's the
 	// "Artifact.Version".
-	EnvVarVersion         = "RELEASE"
-	EnvVarFlavor          = "FLAVOR"
-	EnvVarFlavorRelease   = "FLAVOR_RELEASE"
-	EnvVarVariant         = "VARIANT"
-	EnvVarModel           = "MODEL"
-	EnvVarArch            = "ARCH"
-	EnvVarSoftwareVersion = "SOFTWARE_VERSION"
-	EnvVarRegistryAndOrg  = "REGISTRY_AND_ORG"
-	EnvVarID              = "ID"
-	EnvVarGithubRepo      = "GITHUB_REPO"
-	EnvVarBugReportURL    = "BUG_REPORT_URL"
-	EnvVarHomeURL         = "HOME_URL"
+	EnvVarVersion               = "RELEASE"
+	EnvVarFlavor                = "FLAVOR"
+	EnvVarFlavorRelease         = "FLAVOR_RELEASE"
+	EnvVarVariant               = "VARIANT"
+	EnvVarModel                 = "MODEL"
+	EnvVarArch                  = "ARCH"
+	EnvVarSoftwareVersion       = "SOFTWARE_VERSION"
+	EnvVarSoftwareVersionPrefix = "SOFTWARE_VERSION_PREFIX"
+	EnvVarRegistryAndOrg        = "REGISTRY_AND_ORG"
+	EnvVarID                    = "ID"
+	EnvVarGithubRepo            = "GITHUB_REPO"
+	EnvVarBugReportURL          = "BUG_REPORT_URL"
+	EnvVarHomeURL               = "HOME_URL"
 )
 
 type Artifact struct {
-	Flavor            string
-	FlavorRelease     string
-	Variant           string
-	Model             string
-	Arch              string
-	Version           string // The Kairos version. E.g. "v2.4.2"
-	SoftwareVersion   string // The k3s version. E.g. "k3sv1.26.9+k3s1"
-	RegistryInspector RegistryInspector
+	Flavor                string
+	FlavorRelease         string
+	Variant               string
+	Model                 string
+	Arch                  string
+	Version               string // The Kairos version. E.g. "v2.4.2"
+	SoftwareVersion       string // The k3s version. E.g. "v1.26.9+k3s1"
+	SoftwareVersionPrefix string // E.g. k3s
+	RegistryInspector     RegistryInspector
 }
 
 func NewArtifactFromJSON(jsonStr string) (*Artifact, error) {
@@ -75,6 +77,9 @@ func NewArtifactFromOSRelease(file ...string) (*Artifact, error) {
 	if result.SoftwareVersion, err = utils.OSRelease(EnvVarSoftwareVersion, file...); err != nil {
 		return nil, err
 	}
+	if result.SoftwareVersionPrefix, err = utils.OSRelease(EnvVarSoftwareVersionPrefix, file...); err != nil {
+		return nil, err
+	}
 
 	return &result, nil
 }
@@ -92,6 +97,10 @@ func (a *Artifact) Validate() error {
 	if a.Arch == "" {
 		return errors.New("Arch is empty")
 	}
+
+	if a.SoftwareVersion != "" && a.SoftwareVersionPrefix == "" {
+		return errors.New("SoftwareVersionPrefix should be defined when SoftwareVersion is not empty")
+	}
 	return nil
 }
 
@@ -108,6 +117,10 @@ func (a *Artifact) BootableName() (string, error) {
 	return fmt.Sprintf("kairos-%s-%s", a.Flavor, commonName), nil
 }
 
+func (a *Artifact) Repository(registryAndOrg string) string {
+	return fmt.Sprintf("%s/%s", registryAndOrg, a.Flavor)
+}
+
 func (a *Artifact) ContainerName(registryAndOrg string) (string, error) {
 	if a.Flavor == "" {
 		return "", errors.New("Flavor is empty")
@@ -118,7 +131,7 @@ func (a *Artifact) ContainerName(registryAndOrg string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%s/%s:%s", registryAndOrg, a.Flavor, tag), nil
+	return fmt.Sprintf("%s:%s", a.Repository(registryAndOrg), tag), nil
 }
 
 func (a *Artifact) BaseContainerName(registryAndOrg, id string) (string, error) {
@@ -135,7 +148,7 @@ func (a *Artifact) BaseContainerName(registryAndOrg, id string) (string, error) 
 		return "", err
 	}
 
-	return fmt.Sprintf("%s/%s:%s-%s", registryAndOrg, a.Flavor, tag, id), nil
+	return fmt.Sprintf("%s:%s-%s", a.Repository(registryAndOrg), tag, id), nil
 }
 
 func (a *Artifact) BaseTag() (string, error) {
@@ -156,6 +169,18 @@ func (a *Artifact) Tag() (string, error) {
 	}
 
 	return strings.ReplaceAll(commonName, "+", "-"), nil
+}
+
+// VersionForTag replaces and "+" symbols with "-" because in container image
+// tags, "+" is not valid
+func (a *Artifact) VersionForTag() string {
+	return strings.ReplaceAll(a.Version, "+", "-")
+}
+
+// SoftwareVersionForTag replaces and "+" symbols with "-" because in container image
+// tags, "+" is not valid
+func (a *Artifact) SoftwareVersionForTag() string {
+	return strings.ReplaceAll(a.SoftwareVersion, "+", "-")
 }
 
 // OSReleaseVariables returns a set of variables to be appended in /etc/os-release
@@ -200,12 +225,13 @@ func (a *Artifact) OSReleaseVariables(registryAndOrg, githubRepo, bugURL, homeUR
 		"KAIROS_IMAGE_LABEL": tag,
 		"KAIROS_ARTIFACT":    bootableName,
 		// Actively used variables
-		"KAIROS_FLAVOR":         a.Flavor,
-		"KAIROS_FLAVOR_RELEASE": a.FlavorRelease,
-		"KAIROS_VARIANT":        a.Variant,
-		"KAIROS_MODEL":          a.Model,
-		"KAIROS_ARCH":           a.Arch,
-		"KAIROS_RELEASE":        a.Version,
+		"KAIROS_FLAVOR":           a.Flavor,
+		"KAIROS_FLAVOR_RELEASE":   a.FlavorRelease,
+		"KAIROS_VARIANT":          a.Variant,
+		"KAIROS_MODEL":            a.Model,
+		"KAIROS_ARCH":             a.Arch,
+		"KAIROS_RELEASE":          a.Version,
+		"KAIROS_REGISTRY_AND_ORG": registryAndOrg,
 	}
 	if bugURL != "" {
 		vars["KAIROS_BUG_REPORT_URL"] = bugURL
@@ -260,7 +286,7 @@ func (a *Artifact) commonVersionedName() (string, error) {
 	result = fmt.Sprintf("%s-%s", result, a.Version)
 
 	if a.SoftwareVersion != "" {
-		result = fmt.Sprintf("%s-%s", result, a.SoftwareVersion)
+		result = fmt.Sprintf("%s-%s%s", result, a.SoftwareVersionPrefix, a.SoftwareVersion)
 	}
 
 	return result, nil

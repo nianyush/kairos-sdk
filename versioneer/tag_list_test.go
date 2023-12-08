@@ -1,6 +1,8 @@
 package versioneer_test
 
 import (
+	"fmt"
+
 	"github.com/kairos-io/kairos-sdk/versioneer"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -8,11 +10,25 @@ import (
 
 var _ = Describe("TagList", func() {
 	var tagList versioneer.TagList
+	var artifact versioneer.Artifact
 
 	BeforeEach(func() {
 		tagList = versioneer.TagList{
-			Tags: getFakeTags(),
+			Tags:           getFakeTags(),
+			RegistryAndOrg: "quay.io/kairos",
 		}
+
+		artifact = versioneer.Artifact{
+			Flavor:                "opensuse",
+			FlavorRelease:         "leap-15.5",
+			Variant:               "standard",
+			Model:                 "generic",
+			Arch:                  "amd64",
+			Version:               "v2.4.2",
+			SoftwareVersion:       "v1.26.9+k3s1",
+			SoftwareVersionPrefix: "k3s",
+		}
+
 	})
 
 	Describe("Images", func() {
@@ -26,44 +42,88 @@ var _ = Describe("TagList", func() {
 		})
 	})
 
-	Describe("Sorted", func() {
-		It("returns tags sorted alphabetically", func() {
-			images := tagList.Images()
-			sortedImages := images.Sorted()
+	Describe("FullImages", func() {
+		BeforeEach(func() {
+			tagList = versioneer.TagList{
+				Artifact: &artifact,
+				Tags: []string{
+					"one",
+					"two",
+					"three",
+				},
+				RegistryAndOrg: "quay.io/someorg",
+			}
+		})
+		It("returns full image urls", func() {
+			fullImages, err := tagList.FullImages()
+			Expect(err).ToNot(HaveOccurred())
 
-			// Sanity checks
-			Expect(len(images.Tags)).To(BeNumerically(">", 4))
-			Expect(len(sortedImages.Tags)).To(Equal(len(images.Tags)))
-
-			Expect(isSorted(images.Tags)).To(BeFalse())
-			Expect(isSorted(sortedImages.Tags)).To(BeTrue())
+			Expect(fullImages).To(Equal([]string{
+				fmt.Sprintf("quay.io/someorg/%s:one", artifact.Flavor),
+				fmt.Sprintf("quay.io/someorg/%s:two", artifact.Flavor),
+				fmt.Sprintf("quay.io/someorg/%s:three", artifact.Flavor),
+			}))
 		})
 	})
 
-	Describe("RSorted", func() {
-		It("returns tags in reverse alphabetical order", func() {
-			images := tagList.Images()
-			rSortedImages := images.RSorted()
+	Describe("sorting", func() {
+		var expectedSortedTags []string
 
-			// Sanity checks
-			Expect(len(images.Tags)).To(BeNumerically(">", 4))
-			Expect(len(rSortedImages.Tags)).To(Equal(len(images.Tags)))
+		BeforeEach(func() {
+			tagList.Artifact = &artifact
+			tagList.Tags = []string{
+				"leap-15.5-standard-amd64-generic-v2.4.3-k3sv1.26.8-k3s1",
+				"leap-15.5-standard-amd64-generic-v2.4.3-k3sv1.26.9-k3s1",
+				"leap-15.5-standard-amd64-generic-v2.4.2-rc2-k3sv1.26.9-k3s1",
+				"aa-other-non-matching-tag",
+				"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.26.9-k3s1",
+				"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.26.10-k3s1",
+				"leap-15.5-standard-amd64-generic-v2.4.2-rc1-k3sv1.26.9-k3s1",
+			}
+			expectedSortedTags = []string{
+				"aa-other-non-matching-tag",
+				"leap-15.5-standard-amd64-generic-v2.4.2-rc1-k3sv1.26.9-k3s1",
+				"leap-15.5-standard-amd64-generic-v2.4.2-rc2-k3sv1.26.9-k3s1",
+				"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.26.9-k3s1",
+				"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.26.10-k3s1",
+				"leap-15.5-standard-amd64-generic-v2.4.3-k3sv1.26.8-k3s1",
+				"leap-15.5-standard-amd64-generic-v2.4.3-k3sv1.26.9-k3s1",
+			}
+		})
 
-			Expect(isRSorted(images.Tags)).To(BeFalse())
-			Expect(isRSorted(rSortedImages.Tags)).To(BeTrue())
+		Describe("Sorted", func() {
+			It("returns tags sorted by semver", func() {
+				sortedTags := tagList.Sorted()
+
+				Expect(len(sortedTags.Tags)).To(Equal(7)) // Sanity check
+				Expect(sortedTags.Tags).To(Equal(expectedSortedTags))
+			})
+		})
+
+		Describe("RSorted", func() {
+			It("returns tags in reverse order by semver", func() {
+				rSortedTags := tagList.RSorted()
+
+				size := len(rSortedTags.Tags)
+				Expect(size).To(Equal(7)) // Sanity check
+				for i, t := range rSortedTags.Tags {
+					Expect(t).To(Equal(expectedSortedTags[size-(i+1)]))
+				}
+			})
 		})
 	})
 
 	Describe("OtherVersions", func() {
 		BeforeEach(func() {
 			tagList.Artifact = &versioneer.Artifact{
-				Flavor:          "opensuse",
-				FlavorRelease:   "leap-15.5",
-				Variant:         "standard",
-				Model:           "generic",
-				Arch:            "amd64",
-				Version:         "v2.4.2-rc1",
-				SoftwareVersion: "k3sv1.27.6-k3s1",
+				Flavor:                "opensuse",
+				FlavorRelease:         "leap-15.5",
+				Variant:               "standard",
+				Model:                 "generic",
+				Arch:                  "amd64",
+				Version:               "v2.4.2-rc1",
+				SoftwareVersion:       "v1.27.6+k3s1",
+				SoftwareVersionPrefix: "k3s",
 			}
 		})
 
@@ -79,13 +139,14 @@ var _ = Describe("TagList", func() {
 	Describe("NewerVersions", func() {
 		BeforeEach(func() {
 			tagList.Artifact = &versioneer.Artifact{
-				Flavor:          "opensuse",
-				FlavorRelease:   "leap-15.5",
-				Variant:         "standard",
-				Model:           "generic",
-				Arch:            "amd64",
-				Version:         "v2.4.2-rc2",
-				SoftwareVersion: "k3sv1.27.6-k3s1",
+				Flavor:                "opensuse",
+				FlavorRelease:         "leap-15.5",
+				Variant:               "standard",
+				Model:                 "generic",
+				Arch:                  "amd64",
+				Version:               "v2.4.2-rc2",
+				SoftwareVersion:       "v1.27.6+k3s1",
+				SoftwareVersionPrefix: "k3s",
 			}
 		})
 
@@ -100,13 +161,14 @@ var _ = Describe("TagList", func() {
 	Describe("OtherSoftwareVersions", func() {
 		BeforeEach(func() {
 			tagList.Artifact = &versioneer.Artifact{
-				Flavor:          "opensuse",
-				FlavorRelease:   "leap-15.5",
-				Variant:         "standard",
-				Model:           "generic",
-				Arch:            "amd64",
-				Version:         "v2.4.2-rc1",
-				SoftwareVersion: "k3sv1.27.6-k3s1",
+				Flavor:                "opensuse",
+				FlavorRelease:         "leap-15.5",
+				Variant:               "standard",
+				Model:                 "generic",
+				Arch:                  "amd64",
+				Version:               "v2.4.2-rc1",
+				SoftwareVersion:       "v1.27.6+k3s1",
+				SoftwareVersionPrefix: "k3s",
 			}
 		})
 
@@ -122,18 +184,19 @@ var _ = Describe("TagList", func() {
 	Describe("NewerSofwareVersions", func() {
 		BeforeEach(func() {
 			tagList.Artifact = &versioneer.Artifact{
-				Flavor:          "opensuse",
-				FlavorRelease:   "leap-15.5",
-				Variant:         "standard",
-				Model:           "generic",
-				Arch:            "amd64",
-				Version:         "v2.4.2-rc1",
-				SoftwareVersion: "k3sv1.27.6-k3s1",
+				Flavor:                "opensuse",
+				FlavorRelease:         "leap-15.5",
+				Variant:               "standard",
+				Model:                 "generic",
+				Arch:                  "amd64",
+				Version:               "v2.4.2-rc1",
+				SoftwareVersion:       "v1.27.6+k3s1",
+				SoftwareVersionPrefix: "k3s",
 			}
 		})
 
 		It("returns only tags with newer SoftwareVersion", func() {
-			tags := tagList.NewerSofwareVersions("k3s").Tags
+			tags := tagList.NewerSofwareVersions().Tags
 
 			Expect(tags).To(HaveExactElements(
 				"leap-15.5-standard-amd64-generic-v2.4.2-rc1-k3sv1.28.2-k3s1"))
@@ -143,13 +206,14 @@ var _ = Describe("TagList", func() {
 	Describe("OtherAnyVersion", func() {
 		BeforeEach(func() {
 			tagList.Artifact = &versioneer.Artifact{
-				Flavor:          "opensuse",
-				FlavorRelease:   "leap-15.5",
-				Variant:         "standard",
-				Model:           "generic",
-				Arch:            "amd64",
-				Version:         "v2.4.2-rc1",
-				SoftwareVersion: "k3sv1.27.6-k3s1",
+				Flavor:                "opensuse",
+				FlavorRelease:         "leap-15.5",
+				Variant:               "standard",
+				Model:                 "generic",
+				Arch:                  "amd64",
+				Version:               "v2.4.2-rc1",
+				SoftwareVersion:       "v1.27.6+k3s1",
+				SoftwareVersionPrefix: "k3s",
 			}
 		})
 
@@ -166,24 +230,31 @@ var _ = Describe("TagList", func() {
 				"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.26.9-k3s1",
 				"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.28.2-k3s1"))
 		})
+
+		It("returns a TagList that has the same RegistryAndOrg", func() {
+			newTagList := tagList.OtherAnyVersion()
+
+			Expect(newTagList.RegistryAndOrg).To(Equal("quay.io/kairos"))
+		})
 	})
 
 	Describe("NewerAnyVersion", func() {
 		When("artifact has SoftwareVersion", func() {
 			BeforeEach(func() {
 				tagList.Artifact = &versioneer.Artifact{
-					Flavor:          "opensuse",
-					FlavorRelease:   "leap-15.5",
-					Variant:         "standard",
-					Model:           "generic",
-					Arch:            "amd64",
-					Version:         "v2.4.2-rc1",
-					SoftwareVersion: "k3sv1.27.6-k3s1",
+					Flavor:                "opensuse",
+					FlavorRelease:         "leap-15.5",
+					Variant:               "standard",
+					Model:                 "generic",
+					Arch:                  "amd64",
+					Version:               "v2.4.2-rc1",
+					SoftwareVersion:       "v1.27.6+k3s1",
+					SoftwareVersionPrefix: "k3s",
 				}
 			})
 
 			It("returns only tags with newer Versions and/or SoftwareVersion", func() {
-				tags := tagList.NewerAnyVersion("k3s").Tags
+				tags := tagList.NewerAnyVersion().Tags
 
 				Expect(tags).To(HaveExactElements(
 					"leap-15.5-standard-amd64-generic-v2.4.2-rc1-k3sv1.28.2-k3s1",
@@ -192,9 +263,40 @@ var _ = Describe("TagList", func() {
 					"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.27.6-k3s1",
 					"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.28.2-k3s1"))
 			})
+
+			It("returns a TagList that has the same RegistryAndOrg", func() {
+				newTagList := tagList.NewerAnyVersion()
+
+				Expect(newTagList.RegistryAndOrg).To(Equal("quay.io/kairos"))
+			})
 		})
 
 		When("artifact has no SoftwareVersion", func() {
+			BeforeEach(func() {
+				tagList.Artifact = &versioneer.Artifact{
+					Flavor:                "opensuse",
+					FlavorRelease:         "leap-15.5",
+					Variant:               "core",
+					Model:                 "generic",
+					Arch:                  "amd64",
+					Version:               "v2.4.2-rc1",
+					SoftwareVersion:       "",
+					SoftwareVersionPrefix: "k3s",
+				}
+			})
+
+			It("returns only tags with newer Versions and/or SoftwareVersion", func() {
+				tags := tagList.NewerAnyVersion().Tags
+
+				Expect(tags).To(HaveExactElements(
+					"leap-15.5-core-amd64-generic-v2.4.2-rc2",
+					"leap-15.5-core-amd64-generic-v2.4.2"))
+			})
+		})
+	})
+
+	Describe("NoPrereleases", func() {
+		When("Artifact doesn't have a SoftwareVersion", func() {
 			BeforeEach(func() {
 				tagList.Artifact = &versioneer.Artifact{
 					Flavor:          "opensuse",
@@ -202,17 +304,46 @@ var _ = Describe("TagList", func() {
 					Variant:         "core",
 					Model:           "generic",
 					Arch:            "amd64",
-					Version:         "v2.4.2-rc1",
+					Version:         "v2.4.1",
 					SoftwareVersion: "",
 				}
 			})
 
-			It("returns only tags with newer Versions and/or SoftwareVersion", func() {
-				tags := tagList.NewerAnyVersion("k3s").Tags
+			It("returns only stable releases for Version", func() {
+				tags := tagList.NoPrereleases().Tags
+
+				Expect(tags).To(HaveExactElements("leap-15.5-core-amd64-generic-v2.4.2"))
+			})
+
+			It("returns a TagList that has the same RegistryAndOrg", func() {
+				newTagList := tagList.NoPrereleases()
+
+				Expect(newTagList.RegistryAndOrg).To(Equal("quay.io/kairos"))
+			})
+		})
+
+		When("Artifact has a SoftwareVersion", func() {
+			BeforeEach(func() {
+				tagList.Artifact = &versioneer.Artifact{
+					Flavor:                "opensuse",
+					FlavorRelease:         "leap-15.5",
+					Variant:               "standard",
+					Model:                 "generic",
+					Arch:                  "amd64",
+					Version:               "v2.4.1",
+					SoftwareVersion:       "v1.28.3+k3s1",
+					SoftwareVersionPrefix: "k3s",
+				}
+			})
+
+			It("returns only stable releases for Version", func() {
+				tags := tagList.NoPrereleases().Tags
 
 				Expect(tags).To(HaveExactElements(
-					"leap-15.5-core-amd64-generic-v2.4.2-rc2",
-					"leap-15.5-core-amd64-generic-v2.4.2"))
+					"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.27.6-k3s1",
+					"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.26.9-k3s1",
+					"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.28.2-k3s1",
+				))
 			})
 		})
 	})
@@ -225,30 +356,4 @@ func expectOnlyImages(images []string) {
 	Expect(images).ToNot(ContainElement(ContainSubstring("-img")))
 
 	Expect(images).To(HaveEach(MatchRegexp((".*-(core|standard)-(amd64|arm64)-.*-v.*"))))
-}
-
-func isSorted(tl []string) bool {
-	for i, tag := range tl {
-		if i > 0 {
-			previousTag := tl[i-1]
-			if previousTag > tag {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
-func isRSorted(tl []string) bool {
-	for i, tag := range tl {
-		if i > 0 {
-			previousTag := tl[i-1]
-			if previousTag < tag {
-				return false
-			}
-		}
-	}
-
-	return true
 }
