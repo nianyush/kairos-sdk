@@ -301,3 +301,51 @@ func GetInterfaceIP(in string) string {
 func GetCurrentPlatform() string {
 	return fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 }
+
+// GetEfiGrubFiles Return possible paths for the grub.efi
+// Used in enki and agent
+func GetEfiGrubFiles(arch string) []string {
+	var modNames []string
+	switch arch {
+	case "arm64":
+		modNames = append(modNames, "/usr/share/efi/aarch64/grub.efi")                     // suse
+		modNames = append(modNames, "/usr/lib/grub/x86_64-efi-signed/grubaa64.efi.signed") // ubuntu + debian
+		modNames = append(modNames, "/boot/efi/EFI/fedora/grubaa64.efi")                   // fedora
+		modNames = append(modNames, "/boot/efi/EFI/rocky/grubaa64.efi")                    // rocky
+		modNames = append(modNames, "/boot/efi/EFI/redhat/grubaa64.efi")                   // redhat
+		modNames = append(modNames, "/boot/efi/EFI/almalinux/grubaa64.efi")                // almalinux
+
+	default:
+		modNames = append(modNames, "/usr/share/efi/x86_64/grub.efi")                     // suse
+		modNames = append(modNames, "/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed") // ubuntu + debian
+		modNames = append(modNames, "/boot/efi/EFI/fedora/grubx64.efi")                   // fedora
+		modNames = append(modNames, "/boot/efi/EFI/rocky/grubx64.efi")                    // rocky
+		modNames = append(modNames, "/boot/efi/EFI/redhat/grubx64.efi")                   // redhat
+		modNames = append(modNames, "/boot/efi/EFI/almalinux/grubx64.efi")                // almalinux
+	}
+	return modNames
+}
+
+// GetEfiShimFiles Return possible paths for the shim.efi
+// Used in enki and agent
+func GetEfiShimFiles(arch string) []string {
+	var modNames []string
+	switch arch {
+	case "arm64":
+		modNames = append(modNames, "/usr/share/efi/aarch64/shim.efi")   // suse
+		modNames = append(modNames, "/usr/lib/shim/shimaa64.efi.signed") // ubuntu + debian
+		modNames = append(modNames, "/boot/efi/EFI/fedora/shim.efi")     // fedora
+		modNames = append(modNames, "/boot/efi/EFI/rocky/shim.efi")      // rocky
+		modNames = append(modNames, "/boot/efi/EFI/redhat/shim.efi")     // redhat
+		modNames = append(modNames, "/boot/efi/EFI/almalinux/shim.efi")  // almalinux
+	default:
+		modNames = append(modNames, "/usr/share/efi/x86_64/shim.efi")   // suse
+		modNames = append(modNames, "/usr/lib/shim/shimx64.efi.signed") // ubuntu + debian
+		modNames = append(modNames, "/boot/efi/EFI/fedora/shim.efi")    // fedora
+		modNames = append(modNames, "/boot/efi/EFI/rocky/shim.efi")     // rocky
+		modNames = append(modNames, "/boot/efi/EFI/redhat/shim.efi")    // redhat
+		modNames = append(modNames, "/boot/efi/EFI/almalinux/shim.efi") // almalinux
+	}
+
+	return modNames
+}
