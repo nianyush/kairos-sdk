@@ -149,18 +149,18 @@ func (tl TagList) OtherAnyVersion() TagList {
 	return newTagListWithTags(tl, newTags)
 }
 
-// NewerAnyVersion returns OtherAnyVersion filtered to only include tags with
-// Version and SoftwareVersion equal or higher than the given artifact's.
-// At least one of the 2 versions will be higher than the current one.
+// NewerAnyVersion returns tags with:
+//   - a kairos version than the given artifact's
+//   - a kairos version same as the given artifacts but a software version higher
+//     than the current artifact's
+//
 // Splitting the 2 versions is done using the artifact's SoftwareVersionPrefix
 // (first encountered, because our tags have a "k3s1" in the end too)
 func (tl TagList) NewerAnyVersion() TagList {
-	tags := tl.OtherAnyVersion()
-
 	if tl.Artifact.SoftwareVersion != "" {
-		return tags.newerAllVersions()
+		return tl.newerSomeVersions()
 	} else {
-		return tags.newerVersions()
+		return tl.newerVersions()
 	}
 }
 
@@ -238,18 +238,24 @@ func (tl TagList) newerSoftwareVersions() TagList {
 	return newTagListWithTags(tl, newTags)
 }
 
-func (tl TagList) newerAllVersions() TagList {
+func (tl TagList) newerSomeVersions() TagList {
 	newTags := []string{}
 	for _, t := range tl.Tags {
 		versions := extractVersions(t, *tl.Artifact)
+		if len(versions) < 1 {
+			continue
+		}
 
 		versionResult := semver.Compare(versions[0], tl.Artifact.VersionForTag())
 		sVersionResult := semver.Compare(versions[1], tl.Artifact.SoftwareVersionForTag())
 
-		// If version is not lower than the current
-		// and softwareVersion is not lower than the current
-		// and at least one of the 2 is higher than the current
-		if versionResult >= 0 && sVersionResult >= 0 && versionResult+sVersionResult > 0 {
+		// If kairos version is higher add it (no matter what the sversion is)
+		if versionResult > 0 {
+			newTags = append(newTags, t)
+		}
+
+		// if kairos version is the same, require the sversion to be higher
+		if versionResult == 0 && sVersionResult > 0 {
 			newTags = append(newTags, t)
 		}
 	}

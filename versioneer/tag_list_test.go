@@ -259,8 +259,10 @@ var _ = Describe("TagList", func() {
 				Expect(tags).To(HaveExactElements(
 					"leap-15.5-standard-amd64-generic-v2.4.2-rc1-k3sv1.28.2-k3s1",
 					"leap-15.5-standard-amd64-generic-v2.4.2-rc2-k3sv1.28.2-k3s1",
+					"leap-15.5-standard-amd64-generic-v2.4.2-rc2-k3sv1.26.9-k3s1",
 					"leap-15.5-standard-amd64-generic-v2.4.2-rc2-k3sv1.27.6-k3s1",
 					"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.27.6-k3s1",
+					"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.26.9-k3s1",
 					"leap-15.5-standard-amd64-generic-v2.4.2-k3sv1.28.2-k3s1"))
 			})
 
