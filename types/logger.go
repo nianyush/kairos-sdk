@@ -23,7 +23,7 @@ func NewKairosLogger(name, level string, quiet bool) KairosLogger {
 
 	// Have I ever mentioned how terrible the format of time is in golang?
 	// Whats with this 20060102150405 format? Do anyone actually remembers that?
-	logName := fmt.Sprintf("%s-%s.log", name, time.Now().Format("20060102150405"))
+	logName := fmt.Sprintf("%s-%s.log", name, time.Now().Format("20060102150405.0000"))
 	_ = os.MkdirAll("/run/kairos/", os.ModeDir|os.ModePerm)
 	_ = os.MkdirAll("/var/log/kairos/", os.ModeDir|os.ModePerm)
 	logfileRun, err := os.Create(filepath.Join("/run/kairos/", logName))
