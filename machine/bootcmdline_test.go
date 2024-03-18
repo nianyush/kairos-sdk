@@ -24,5 +24,16 @@ var _ = Describe("BootCMDLine", func() {
 
 			Expect(string(b)).To(Equal("baz:\n    bar: \"\"\nconfig_url: foo bar\n"), string(b))
 		})
+		It("works if cmdline contains a dash or underscore", func() {
+			f, err := os.CreateTemp("", "test")
+			Expect(err).ToNot(HaveOccurred())
+			defer os.RemoveAll(f.Name())
+
+			err = os.WriteFile(f.Name(), []byte(`config-url="foo bar" ba_z.bar=""`), os.ModePerm)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = DotToYAML(f.Name())
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 })
