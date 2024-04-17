@@ -11,6 +11,7 @@ import (
 	"github.com/itchyny/gojq"
 	"github.com/jaypipes/ghw"
 	"github.com/jaypipes/ghw/pkg/block"
+	"github.com/kairos-io/kairos-sdk/signatures"
 	"github.com/kairos-io/kairos-sdk/types"
 	"github.com/kairos-io/kairos-sdk/utils"
 	"github.com/rs/zerolog"
@@ -47,10 +48,11 @@ type PartitionState struct {
 }
 
 type Kairos struct {
-	Flavor     string `yaml:"flavor" json:"flavor"`
-	Version    string `yaml:"version" json:"version"`
-	Init       string `yaml:"init" json:"init"`
-	SecureBoot bool   `yaml:"secureboot" json:"secureboot"`
+	Flavor     string         `yaml:"flavor" json:"flavor"`
+	Version    string         `yaml:"version" json:"version"`
+	Init       string         `yaml:"init" json:"init"`
+	SecureBoot bool           `yaml:"secureboot" json:"secureboot"`
+	EfiCerts   types.EfiCerts `yaml:"eficerts,omitempty" json:"eficerts,omitempty"`
 }
 
 type Runtime struct {
@@ -309,9 +311,26 @@ func detectKairos(r *Runtime) {
 		k.Version = v
 	}
 	k.Init = utils.GetInit()
+	k.EfiCerts = getEfiCertsCommonNames()
 	k.SecureBoot = efi.GetSecureBoot()
 	r.Kairos = *k
 
+}
+
+// getEfiCertsCommonNames returns a simple list of the Common names of the certs
+func getEfiCertsCommonNames() types.EfiCerts {
+	var data types.EfiCerts
+	certs, _ := signatures.GetAllCerts() // Ignore errors here, we dont care about them, we only want the presentation of the names
+	for _, c := range certs.PK {
+		data.PK = append(data.PK, c.Issuer.CommonName)
+	}
+	for _, c := range certs.KEK {
+		data.KEK = append(data.KEK, c.Issuer.CommonName)
+	}
+	for _, c := range certs.DB {
+		data.DB = append(data.DB, c.Issuer.CommonName)
+	}
+	return data
 }
 
 func NewRuntimeWithLogger(logger zerolog.Logger) (Runtime, error) {
