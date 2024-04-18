@@ -28,6 +28,47 @@ func GetKeyDatabase(sigType string) (*signature.SignatureDatabase, error) {
 	return sig, err
 }
 
+// GetAllFullCerts returns a list of certs in the system. Full cert, including raw data of the cert
+func GetAllFullCerts() (types.CertListFull, error) {
+	var certList types.CertListFull
+	pk, err := GetKeyDatabase("PK")
+	if err != nil {
+		return certList, err
+	}
+	kek, err := GetKeyDatabase("KEK")
+	if err != nil {
+		return certList, err
+	}
+	db, err := GetKeyDatabase("DB")
+	if err != nil {
+		return certList, err
+	}
+
+	certList.PK = ExtractCertsFromSignatureDatabase(pk)
+	certList.KEK = ExtractCertsFromSignatureDatabase(kek)
+	certList.DB = ExtractCertsFromSignatureDatabase(db)
+
+	return certList, nil
+}
+
+// ExtractCertsFromSignatureDatabase returns a []*x509.Certificate from a *signature.SignatureDatabase
+func ExtractCertsFromSignatureDatabase(database *signature.SignatureDatabase) []*x509.Certificate {
+	var result []*x509.Certificate
+	for _, k := range *database {
+		if isValidSignature(k.SignatureType) {
+			for _, k1 := range k.Signatures {
+				// Note the S at the end of the function, we are parsing multiple certs, not just one
+				certificates, err := x509.ParseCertificates(k1.Data)
+				if err != nil {
+					continue
+				}
+				result = append(result, certificates...)
+			}
+		}
+	}
+	return result
+}
+
 // GetAllCerts returns a list of certs in the system
 func GetAllCerts() (types.CertList, error) {
 	var certList types.CertList
@@ -90,7 +131,6 @@ func GetAllCerts() (types.CertList, error) {
 	}
 
 	return certList, nil
-
 }
 
 // isValidSignature identifies a signature based as a DER-encoded X.509 certificate
