@@ -18,7 +18,33 @@ type InstallSchema struct {
 	GrubOptionsSchema   `json:"grub_options,omitempty"`
 	Image               string `json:"image,omitempty" description:"Use a different container image for the installation"`
 	PowerManagement
-	SkipEncryptCopyPlugins bool `json:"skip_copy_kcrypt_plugin,omitempty"`
+	SkipEncryptCopyPlugins bool                `json:"skip_copy_kcrypt_plugin,omitempty"`
+	Partitions             ElementalPartitions `json:"partitions,omitempty" mapstructure:"partitions"`
+	GrubDefEntry           string              `json:"grub-entry-name,omitempty" mapstructure:"grub-entry-name"`
+	ExtraPartitions        []*Partition        `json:"extra-partitions,omitempty" mapstructure:"extra-partitions"`
+	Force                  bool                `json:"force,omitempty" mapstructure:"force"`
+	ExtraDirsRootfs        []string            `json:"extra-dirs-rootfs,omitempty" mapstructure:"extra-dirs-rootfs"`
+	Active                 Image               `json:"system,omitempty" mapstructure:"system"`
+	Recovery               Image               `json:"recovery-system,omitempty" mapstructure:"recovery-system"`
+	Passive                Image               `json:"passive,omitempty" mapstructure:"recovery-system"`
+}
+
+type Image struct {
+	Size       uint   `json:"size,omitempty" mapstructure:"size"`
+	Source     string `json:"uri,omitempty" mapstructure:"uri"`
+}
+
+type Partition struct {
+	Name string `json:"name,omitempty"`
+	Size uint   `json:"size,omitempty" mapstructure:"size"`
+	FS   string `json:"fs,omitempty" mapstrcuture:"fs"`
+}
+
+type ElementalPartitions struct {
+	OEM        *Partition `json:"oem,omitempty" mapstructure:"oem"`
+	Recovery   *Partition `json:"recovery,omitempty" mapstructure:"recovery"`
+	State      *Partition `json:"state,omitempty" mapstructure:"state"`
+	Persistent *Partition `json:"persistent,omitempty" mapstructure:"persistent"`
 }
 
 // BundleSchema represents the bundle block which can be used in different places of the Kairos configuration. It is used to reference a bundle and its confguration.
