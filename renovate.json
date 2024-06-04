@@ -9,6 +9,10 @@
     "every weekend"
   ],
   "timezone": "Europe/Brussels",
+  "rebaseWhen": "behind-base-branch",
+  "constraints": {
+    "go": "1.19"
+  },
   "packageRules": [
     {
       "matchUpdateTypes": ["patch"],
