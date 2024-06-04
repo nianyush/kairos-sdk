@@ -399,6 +399,8 @@ github.com/swaggest/assertjson v1.9.0 h1:dKu0BfJkIxv/xe//mkCrK5yZbs79jL7OVf9Ija7
 github.com/swaggest/assertjson v1.9.0/go.mod h1:b+ZKX2VRiUjxfUIal0HDN85W0nHPAYUbYH5WkkSsFsU=
 github.com/swaggest/jsonschema-go v0.3.62 h1:eIE0aRklWa2eLJg2L/zqyWpKvgUPbq2oKOtrJGJkPH0=
 github.com/swaggest/jsonschema-go v0.3.62/go.mod h1:DYuKqdpms/edvywsX6p1zHXCZkdwB28wRaBdFCe3Duw=
+github.com/swaggest/jsonschema-go v0.3.70 h1:8Vx5nm5t/6DBFw2+WC0/Vp1ZVe9/4mpuA0tuAe0wwCI=
+github.com/swaggest/jsonschema-go v0.3.70/go.mod h1:7N43/CwdaWgPUDfYV70K7Qm79tRqe/al7gLSt9YeGIE=
 github.com/swaggest/refl v1.3.0 h1:PEUWIku+ZznYfsoyheF97ypSduvMApYyGkYF3nabS0I=
 github.com/swaggest/refl v1.3.0/go.mod h1:3Ujvbmh1pfSbDYjC6JGG7nMgPvpG0ehQL4iNonnLNbg=
 github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635/go.mod h1:hkRG7XYTFWNJGYcbNJQlaLq0fg1yr4J4t/NcTQtrfww=
