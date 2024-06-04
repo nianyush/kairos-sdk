@@ -2,10 +2,10 @@ module github.com/kairos-io/kairos-sdk
 
 go 1.19
 
-// This versions require go1.20
+// Higher versions require go1.20
 replace (
-	github.com/onsi/ginkgo/v2 v2.17.1 => github.com/onsi/ginkgo/v2 v2.12.1
-	github.com/onsi/gomega v1.32.0 => github.com/onsi/gomega v1.28.0
+	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.12.1
+	github.com/onsi/gomega => github.com/onsi/gomega v1.28.0
 )
 
 require (
