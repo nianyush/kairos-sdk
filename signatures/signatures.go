@@ -148,9 +148,9 @@ func isValidSignature(sign util.EFIGUID) bool {
 	return sign == signature.CERT_X509_GUID
 }
 
-// checkArtifactSignatureIsValid checks that a given efi artifact is signed properly with a signature that would allow it to
+// CheckArtifactSignatureIsValid checks that a given efi artifact is signed properly with a signature that would allow it to
 // boot correctly in the current node if secureboot is enabled
-func checkArtifactSignatureIsValid(fs types.KairosFS, artifact string, logger types.KairosLogger) error {
+func CheckArtifactSignatureIsValid(fs types.KairosFS, artifact string, logger types.KairosLogger) error {
 	var err error
 	logger.Logger.Info().Str("what", artifact).Msg("Checking artifact for valid signature")
 	info, err := fs.Stat(artifact)
