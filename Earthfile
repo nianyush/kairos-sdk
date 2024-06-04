@@ -3,7 +3,7 @@ VERSION 0.7
 # renovate: datasource=docker depName=golang
 ARG --global GO_VERSION=1.20
 # renovate: datasource=docker depName=golangci-lint
-ARG --global GOLINT_VERSION=v1.51
+ARG --global GOLINT_VERSION=1.51.0
 # renovate: datasource=docker depName=quay.io/luet/base
 ARG --global LUET_VERSION=0.34.0
 
@@ -30,8 +30,10 @@ test:
     RUN go run github.com/onsi/ginkgo/v2/ginkgo run --fail-fast --slow-spec-threshold 30s --covermode=atomic --coverprofile=coverage.out -p -r ./...
     SAVE ARTIFACT coverage.out AS LOCAL coverage.out
 
+
 lint:
-    FROM golangci/golangci-lint:$GOLINT_VERSION
+    FROM +go-deps
+    ARG GOLINT_VERSION
+    RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v$GOLINT_VERSION
     WORKDIR /build
-    COPY . .
-    RUN golangci-lint run
+    RUN bin/golangci-lint run -v
