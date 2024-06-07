@@ -94,6 +94,13 @@ func WithTransport(t http.RoundTripper) BundleOption {
 	}
 }
 
+func WithProgress(p chan<- v1.Update) BundleOption {
+	return func(bc *BundleConfig) error {
+		bc.Progress = p
+		return nil
+	}
+}
+
 func (bc *BundleConfig) extractRepo() (string, string, error) {
 	s := strings.Split(bc.Repository, "://")
 	if len(s) != 2 {
