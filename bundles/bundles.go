@@ -27,7 +27,7 @@ type BundleConfig struct {
 	LocalFile  bool
 	Auth       *registrytypes.AuthConfig
 	Transport  http.RoundTripper
-	Progress   chan<- v1.Update
+	Progress   chan v1.Update
 }
 
 // BundleOption defines a configuration option for a bundle.
@@ -94,7 +94,7 @@ func WithTransport(t http.RoundTripper) BundleOption {
 	}
 }
 
-func WithProgress(p chan<- v1.Update) BundleOption {
+func WithProgress(p chan v1.Update) BundleOption {
 	return func(bc *BundleConfig) error {
 		bc.Progress = p
 		return nil
