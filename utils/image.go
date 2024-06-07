@@ -76,7 +76,7 @@ func GetImage(targetImage, targetPlatform string, auth *registrytypes.AuthConfig
 	return GetImageWithProgress(targetImage, targetPlatform, auth, t, nil)
 }
 
-func GetImageWithProgress(targetImage, targetPlatform string, auth *registrytypes.AuthConfig, t http.RoundTripper, p chan<- v1.Update) (v1.Image, error) {
+func GetImageWithProgress(targetImage, targetPlatform string, auth *registrytypes.AuthConfig, t http.RoundTripper, p chan v1.Update) (v1.Image, error) {
 	var platform *v1.Platform
 	var image v1.Image
 	var err error
