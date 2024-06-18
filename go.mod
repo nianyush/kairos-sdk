@@ -35,7 +35,6 @@ require (
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/zcalusic/sysinfo v1.0.1
 	golang.org/x/mod v0.18.0
-	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -116,6 +115,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
+	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gotest.tools/v3 v3.4.0 // indirect
 	howett.net/plist v1.0.0 // indirect
