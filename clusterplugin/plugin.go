@@ -8,7 +8,7 @@ import (
 	"github.com/kairos-io/kairos-sdk/bus"
 	"github.com/mudler/go-pluggable"
 	yip "github.com/mudler/yip/pkg/schema"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const clusterProviderCloudConfigFile = "/usr/local/cloud-config/cluster.kairos.yaml"
