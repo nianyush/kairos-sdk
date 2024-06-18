@@ -20,7 +20,8 @@ type ClusterProvider func(cluster Cluster) yip.YipConfig
 // ClusterPlugin creates a cluster plugin from a `ClusterProvider`.  It calls the cluster provider at the appropriate events
 // and ensures it configuration is written where it will be executed.
 type ClusterPlugin struct {
-	Provider ClusterProvider
+	Provider          ClusterProvider
+	ClusterConfigPath string
 }
 
 func (p ClusterPlugin) onBoot(event *pluggable.Event) pluggable.EventResponse {
@@ -48,7 +49,10 @@ func (p ClusterPlugin) onBoot(event *pluggable.Event) pluggable.EventResponse {
 	cc := p.Provider(*config.Cluster)
 
 	// open our cloud configuration file for writing
-	f, err := filesystem.OpenFile(clusterProviderCloudConfigFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if len(p.ClusterConfigPath) == 0 {
+		p.ClusterConfigPath = clusterProviderCloudConfigFile
+	}
+	f, err := filesystem.OpenFile(p.ClusterConfigPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
 		response.Error = fmt.Sprintf("failed to parse boot event: %s", err.Error())
 		return response
