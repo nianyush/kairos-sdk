@@ -6,7 +6,7 @@ require (
 	github.com/avast/retry-go v2.7.0+incompatible
 	github.com/containerd/containerd v1.7.20
 	github.com/denisbrodbeck/machineid v1.0.1
-	github.com/docker/docker v27.0.3+incompatible
+	github.com/docker/docker v27.1.0+incompatible
 	github.com/edsrzf/mmap-go v1.1.0
 	github.com/foxboron/go-uefi v0.0.0-20240722190620-5d4f760099bd
 	github.com/google/go-containerregistry v0.20.1
