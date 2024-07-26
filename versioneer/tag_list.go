@@ -10,6 +10,8 @@ import (
 	"golang.org/x/mod/semver"
 )
 
+var ignoredImageSuffixes = []string{"-uki", "-img"}
+
 type TagList struct {
 	Tags           []string
 	Artifact       *Artifact
@@ -59,8 +61,9 @@ func (tl TagList) Images() TagList {
 
 	newTags := []string{}
 	for _, t := range tl.Tags {
-		// We have to filter "-img" tags outside the regexp because golang regexp doesn't support negative lookaheads.
-		if regexpObject.MatchString(t) && !strings.HasSuffix(t, "-img") {
+		// Golang regexp doesn't support negative lookaheads so we filter some images
+		// outside regexp.
+		if regexpObject.MatchString(t) && !ignoreSuffixedTag(t) {
 			newTags = append(newTags, t)
 		}
 	}
@@ -353,4 +356,13 @@ func extractVersions(tagToCheck string, artifact Artifact) []string {
 // and RegistryAndOrg fields but with the given tags as Tags.
 func newTagListWithTags(tl TagList, tags []string) TagList {
 	return TagList{Artifact: tl.Artifact, RegistryAndOrg: tl.RegistryAndOrg, Tags: tags}
+}
+
+func ignoreSuffixedTag(tag string) bool {
+	for _, i := range ignoredImageSuffixes {
+		if strings.HasSuffix(tag, i) {
+			return true
+		}
+	}
+	return false
 }
