@@ -36,6 +36,17 @@ func NewPaths(withOptionalPrefix string) *Paths {
 		RunUdevData: "/run/udev/data",
 		ProcMounts:  "/proc/mounts",
 	}
+
+	// Allow overriding the paths via env var. It has precedence over anything
+	val, exists := os.LookupEnv("GHW_CHROOT")
+	if exists {
+		val = strings.TrimSuffix(val, "/")
+		p.SysBlock = fmt.Sprintf("%s%s", val, p.SysBlock)
+		p.RunUdevData = fmt.Sprintf("%s%s", val, p.RunUdevData)
+		p.ProcMounts = fmt.Sprintf("%s%s", val, p.ProcMounts)
+		return p
+	}
+
 	if withOptionalPrefix != "" {
 		withOptionalPrefix = strings.TrimSuffix(withOptionalPrefix, "/")
 		p.SysBlock = fmt.Sprintf("%s%s", withOptionalPrefix, p.SysBlock)
