@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	jsonschemago "github.com/swaggest/jsonschema-go"
 	"gopkg.in/yaml.v3"
 )
@@ -79,7 +79,7 @@ func (kc *KConfig) validate() {
 		return
 	}
 
-	sch, err := jsonschema.CompileString("schema.json", string(generatedSchemaJSON))
+	sch, err := CompileString("schema.json", string(generatedSchemaJSON))
 	if err != nil {
 		kc.ValidationError = err
 		return
@@ -122,4 +122,13 @@ func NewConfigFromYAML(s string, st interface{}) (*KConfig, error) {
 		return kc, err
 	}
 	return kc, nil
+}
+
+// CompileString parses and compiles the given schema with given base url.
+func CompileString(url, schema string) (*jsonschema.Schema, error) {
+	c := jsonschema.NewCompiler()
+	if err := c.AddResource(url, strings.NewReader(schema)); err != nil {
+		return nil, err
+	}
+	return c.Compile(url)
 }
